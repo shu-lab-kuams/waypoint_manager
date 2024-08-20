@@ -5,6 +5,7 @@ from rclpy.action import ActionClient
 from action_msgs.msg import GoalStatus
 from nav2_msgs.action import NavigateToPose
 from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import Int32
 
 class WaypointManager(Node):
     def __init__(self):
@@ -17,7 +18,7 @@ class WaypointManager(Node):
         action_server_name = self.get_parameter('action_server_name').value
 
         # Publisher
-        self.pose_publisher = self.create_publisher(PoseStamped, 'waypoint_manager/waypoint_pose', 10)
+        self.waypoint_id_publisher = self.create_publisher(Int32, 'waypoint_id', 10)
         
         # Action Client
         self._action_client = ActionClient(self, NavigateToPose, action_server_name)
@@ -79,6 +80,9 @@ class WaypointManager(Node):
         self.get_logger().info('Sending waypoint...')
         send_goal_future = self._action_client.send_goal_async(goal_msg, feedback_callback=self.feedback_callback)
         send_goal_future.add_done_callback(self.goal_response_callback)
+
+        # Publish the current waypoint index
+        self.waypoint_id_publisher.publish(Int32(data=self.current_waypoint_index))
 
     def feedback_callback(self, feedback_msg):
         current_time = self.get_clock().now()
