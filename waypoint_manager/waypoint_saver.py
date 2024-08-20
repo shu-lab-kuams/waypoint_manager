@@ -1,5 +1,6 @@
 import os
 import csv
+from math import sqrt, pow
 from pynput import keyboard
 import threading
 from datetime import datetime
@@ -21,10 +22,14 @@ class WaypointSaver(Node):
         self.declare_parameter('use_joy', False)
         self.declare_parameter('save_button', 0)
         self.declare_parameter('quit_button', 1)
+        self.declare_parameter('auto_record', False)
+        self.declare_parameter('waypoint_interval', 1)
         self.use_keyboard = self.get_parameter('use_keyboard').value
         self.use_joy = self.get_parameter('use_joy').value
         self.save_button = self.get_parameter('save_button').value
         self.quit_button = self.get_parameter('quit_button').value
+        self.auto_record = self.get_parameter('auto_record').value
+        self.waypoint_interval = self.get_parameter('waypoint_interval').value
 
         # Subscription
         self.create_subscription(PoseWithCovarianceStamped, '/mcl_pose', self.pose_callback, 10)        
@@ -48,6 +53,7 @@ class WaypointSaver(Node):
         self.current_pose = None
         self.pose_id = 0
         self.prev_joy_buttons = []
+        self.last_pose = PoseStamped()
 
     def keyboard_listener(self):
         with keyboard.Listener(on_press=self.on_key_press) as listener:
@@ -103,6 +109,11 @@ class WaypointSaver(Node):
             pose_stamped.header.frame_id = "map"  # frame_idに注意
             pose_stamped.pose = self.current_pose
             self.pose_publisher.publish(pose_stamped)
+
+            # Memorize the last recorded pose
+            self.last_pose.header.stamp = self.get_clock().now().to_msg()
+            self.last_pose.header.frame_id = "map"
+            self.last_pose.pose = self.current_pose
         else:
             self.get_logger().warn('Warning: No pose received yet.')
 
@@ -121,6 +132,17 @@ class WaypointSaver(Node):
 
     def pose_callback(self, msg):
         self.current_pose = msg.pose.pose
+        dist_between_waypoints = None
+        if self.auto_record:
+            if self.last_pose is None:
+                self.last_pose = self.current_pose
+            else:
+                dist_between_waypoints = sqrt(pow(self.current_pose.position.x - self.last_pose.pose.position.x, 2) + 
+                                            pow(self.current_pose.position.y - self.last_pose.pose.position.y, 2) + 
+                                            pow(self.current_pose.position.z - self.last_pose.pose.position.z, 2))
+                if dist_between_waypoints >= self.waypoint_interval:
+                    self.save_pose()
+
 
 def main(args=None):
     rclpy.init(args=args)
