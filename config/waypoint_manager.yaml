@@ -6,6 +6,6 @@ waypoint_manager_node:
 
 waypoint_visualizer_node:
   ros__parameters:
-      # Set waypoints_csv file in the launch file
+    # Set waypoints_csv file in the launch file
     waypoints_csv: ''
     map_frame: 'map'
