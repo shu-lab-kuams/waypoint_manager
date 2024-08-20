@@ -142,6 +142,7 @@ class WaypointSaver(Node):
                                             pow(self.current_pose.position.z - self.last_pose.pose.position.z, 2))
                 if dist_between_waypoints >= self.waypoint_interval:
                     self.save_pose()
+                    self.last_pose = self.current_pose
 
 
 def main(args=None):
