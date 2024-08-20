@@ -1,4 +1,11 @@
 waypoint_manager_node:
   ros__parameters:
-    waypoints_csv: '/home/keisoku/dev_ws/src/waypoint_manager/waypoints/20240720154249_waypoints.csv'
+    # Set waypoints_csv file in the launch file
+    waypoints_csv: ''
     action_server_name: 'navigate_to_pose'
+
+waypoint_visualizer_node:
+  ros__parameters:
+      # Set waypoints_csv file in the launch file
+    waypoints_csv: ''
+    map_frame: 'map'

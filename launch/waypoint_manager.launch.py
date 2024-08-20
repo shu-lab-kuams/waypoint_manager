@@ -4,7 +4,9 @@ import os
 from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
-    waypoint_manager_config = os.path.join(
+    # Set the paths to the waypoint CSV and the configuration file
+    waypoints_csv_path = '/home/keisoku/dev_ws/src/waypoint_manager/waypoints/20240720154249_waypoints.csv'
+    config_file_path = os.path.join(
         get_package_share_directory('waypoint_manager'),
         'config',
         'waypoint_manager.yaml'
@@ -16,6 +18,17 @@ def generate_launch_description():
             executable='waypoint_manager',
             name='waypoint_manager_node',
             output='screen',
-            parameters=[waypoint_manager_config]
+            parameters=[config_file_path, {
+                'waypoints_csv': waypoints_csv_path,
+            }]
+        ),
+        Node(
+            package='waypoint_manager',
+            executable='waypoint_visualizer',
+            name='waypoint_visualizer_node',
+            output='screen',
+            parameters=[config_file_path, {
+                'waypoints_csv': waypoints_csv_path,
+            }]
         ),
     ])
