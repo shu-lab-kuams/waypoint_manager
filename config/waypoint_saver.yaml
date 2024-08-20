@@ -1,0 +1,7 @@
+waypoint_saver_node:
+  ros__parameters:
+    use_keyboard: False
+
+    use_joy: True
+    save_button: 0
+    quite_button: 1

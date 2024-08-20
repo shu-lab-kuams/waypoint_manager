@@ -1,0 +1,4 @@
+waypoint_manager_node:
+  ros__parameters:
+    waypoints_csv: '/home/shugo/kuams_ws/src/waypoint_manager/waypoints/20240722152744_waypoints.csv'
+    action_server_name: 'navigate_to_pose'
