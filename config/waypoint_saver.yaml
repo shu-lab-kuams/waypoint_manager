@@ -5,6 +5,7 @@ waypoint_saver_node:
     use_joy: True
     save_button: 0
     quite_button: 1
+    erace_button: 2
 
-    auto_record: True
+    auto_record: False
     waypoint_interval: 2

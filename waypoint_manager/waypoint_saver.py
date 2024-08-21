@@ -23,13 +23,15 @@ class WaypointSaver(Node):
         self.declare_parameter('use_joy', False)
         self.declare_parameter('save_button', 0)
         self.declare_parameter('quit_button', 1)
+        self.declare_parameter('erace_button', 2)
         self.declare_parameter('auto_record', False)
         self.declare_parameter('waypoint_interval', 1)
-        self.declare_parameter('save_interval', 0.5)  # デバウンス用の最小保存間隔 (秒)
+        self.declare_parameter('save_interval', 0.5)
         self.use_keyboard = self.get_parameter('use_keyboard').value
         self.use_joy = self.get_parameter('use_joy').value
         self.save_button = self.get_parameter('save_button').value
         self.quit_button = self.get_parameter('quit_button').value
+        self.erace_button = self.get_parameter('erace_button').value
         self.auto_record = self.get_parameter('auto_record').value
         self.waypoint_interval = self.get_parameter('waypoint_interval').value
         self.save_interval = self.get_parameter('save_interval').value
@@ -58,9 +60,9 @@ class WaypointSaver(Node):
         self.poses = []
         self.current_pose = None
         self.pose_id = 0
-        self.prev_joy_buttons = [0] * 12  # 前回のJoyボタンの状態を初期化 (ボタンの数に応じて調整)
+        self.prev_joy_buttons = [0] * 12
         self.last_pose = PoseStamped()
-        self.last_save_time = time.time()  # 最後に保存された時間を記録
+        self.last_save_time = time.time()
 
         # Marker-related variables
         self.markers = MarkerArray()
@@ -93,8 +95,12 @@ class WaypointSaver(Node):
             self.destroy_node()
             rclpy.shutdown()
 
+        # Check if erase_button is pressed
+        if msg.buttons[self.erace_button] == 1 and self.prev_joy_buttons[self.erace_button] == 0:
+            self.erase_last_pose()
+
         # Update the previous button states
-        self.prev_joy_buttons = list(msg.buttons)  # 現在のボタン状態を次回の比較用にリストとして保存
+        self.prev_joy_buttons = list(msg.buttons)
 
     def try_save_pose(self):
         current_time = time.time()
@@ -201,6 +207,30 @@ class WaypointSaver(Node):
         self.marker_pub.publish(self.markers)
         self.text_marker_pub.publish(self.text_markers)
         self.line_marker_pub.publish(self.line_markers)
+
+    def erase_last_pose(self):
+        if self.poses:
+            # Remove the last saved pose
+            last_pose_id = self.pose_id - 1
+            self.poses.pop()
+            self.pose_id -= 1
+            self.get_logger().info(f'erased! ID: {last_pose_id}')
+
+            # Remove the corresponding marker
+            self.markers.markers = [marker for marker in self.markers.markers if marker.id != last_pose_id]
+
+            # Remove the corresponding text marker
+            self.text_markers.markers = [text_marker for text_marker in self.text_markers.markers if text_marker.id != last_pose_id + 1000]
+
+            # Remove the corresponding line marker
+            self.line_markers.markers = [line_marker for line_marker in self.line_markers.markers if line_marker.id != last_pose_id + 2000]
+
+            # Publish updated markers
+            self.marker_pub.publish(self.markers)
+            self.text_marker_pub.publish(self.text_markers)
+            self.line_marker_pub.publish(self.line_markers)
+        else:
+            self.get_logger().warn('No poses to erase.')
 
     def save_poses_to_csv(self):
         filename = datetime.now().strftime('%Y%m%d%H%M%S') + '_waypoints.csv'
