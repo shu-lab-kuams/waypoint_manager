@@ -18,4 +18,11 @@ def generate_launch_description():
             output='screen',
             parameters=[waypoint_saver_config]
         ),
+
+         Node(
+            package='joy',
+            executable='joy_node',
+            name='joy',
+            output='screen',
+        ),    
     ])

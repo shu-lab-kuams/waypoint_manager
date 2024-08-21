@@ -14,8 +14,12 @@ class WaypointManager(Node):
         # Parameters
         self.declare_parameter('waypoints_csv', '')
         self.declare_parameter('action_server_name', '')
+        self.declare_parameter('loop_enable', False)
+        self.declare_parameter('loop_count', 0)
         waypoints_csv = self.get_parameter('waypoints_csv').value
         action_server_name = self.get_parameter('action_server_name').value
+        self.loop_enable = self.get_parameter('loop_enable').value
+        self.loop_count = self.get_parameter('loop_count').value
 
         # Publisher
         self.waypoint_id_publisher = self.create_publisher(Int32, 'waypoint_id', 10)
@@ -33,6 +37,7 @@ class WaypointManager(Node):
 
         # Variables
         self.current_waypoint_index = 0
+        self.current_loop_count = 0
         self._last_feedback_time = self.get_clock().now()
     
     def load_waypoints_from_csv(self, waypoints_csv):
@@ -81,8 +86,8 @@ class WaypointManager(Node):
         send_goal_future = self._action_client.send_goal_async(goal_msg, feedback_callback=self.feedback_callback)
         send_goal_future.add_done_callback(self.goal_response_callback)
 
-        # Publish the current waypoint index
-        self.waypoint_id_publisher.publish(Int32(data=self.current_waypoint_index))
+        next_waypoint_id = self.current_waypoint_index
+        self.waypoint_id_publisher.publish(Int32(data=next_waypoint_id))
 
     def feedback_callback(self, feedback_msg):
         current_time = self.get_clock().now()
@@ -111,7 +116,13 @@ class WaypointManager(Node):
             next_waypoint_data["pose"].header.stamp = self.get_clock().now().to_msg()
             self.send_goal(next_waypoint_data)
         else:
-            self.get_logger().info('Arrived at the last waypoint. Navigation complete.')
+            if self.loop_enable and self.current_loop_count < self.loop_count - 1:
+                self.current_waypoint_index = 0
+                self.current_loop_count += 1
+                self.get_logger().info(f'Starting loop {self.current_loop_count + 1} of {self.loop_count}')
+                self.send_goal(self.waypoints_data[self.current_waypoint_index])
+            else:
+                self.get_logger().info('Arrived at the last waypoint. Navigation complete.')
 
     def run(self):
         if self.waypoints_data:

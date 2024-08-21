@@ -84,8 +84,8 @@ class WaypointVisualizer(Node):
                         text_marker.id = waypoint_id + 1000
                         text_marker.type = Marker.TEXT_VIEW_FACING
                         text_marker.action = Marker.ADD
-                        text_marker.pose.position.x = pose.pose.position.x
-                        text_marker.pose.position.y = pose.pose.position.y
+                        text_marker.pose.position.x = pose.pose.position.x + 0.2
+                        text_marker.pose.position.y = pose.pose.position.y - 0.2
                         text_marker.pose.position.z = pose.pose.position.z + 0.3
                         text_marker.scale.z = 0.5
                         text_marker.color.a = 1.0

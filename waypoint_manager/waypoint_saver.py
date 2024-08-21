@@ -1,5 +1,6 @@
 import os
 import csv
+import time
 from math import sqrt, pow
 from pynput import keyboard
 import threading
@@ -11,7 +12,7 @@ from sensor_msgs.msg import Joy
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from geometry_msgs.msg import PoseStamped
-
+from visualization_msgs.msg import Marker, MarkerArray
 
 class WaypointSaver(Node):
     def __init__(self):
@@ -24,18 +25,23 @@ class WaypointSaver(Node):
         self.declare_parameter('quit_button', 1)
         self.declare_parameter('auto_record', False)
         self.declare_parameter('waypoint_interval', 1)
+        self.declare_parameter('save_interval', 0.5)  # デバウンス用の最小保存間隔 (秒)
         self.use_keyboard = self.get_parameter('use_keyboard').value
         self.use_joy = self.get_parameter('use_joy').value
         self.save_button = self.get_parameter('save_button').value
         self.quit_button = self.get_parameter('quit_button').value
         self.auto_record = self.get_parameter('auto_record').value
         self.waypoint_interval = self.get_parameter('waypoint_interval').value
+        self.save_interval = self.get_parameter('save_interval').value
 
         # Subscription
         self.create_subscription(PoseWithCovarianceStamped, '/mcl_pose', self.pose_callback, 10)        
 
         # Publisher
-        self.pose_publisher = self.create_publisher(PoseStamped, '/navigation_manager/waypoint_pose', 10) 
+        self.pose_publisher = self.create_publisher(PoseStamped, '/navigation_manager/waypoint_pose', 10)
+        self.marker_pub = self.create_publisher(MarkerArray, 'waypoint/markers', 10)
+        self.text_marker_pub = self.create_publisher(MarkerArray, 'waypoint/text_markers', 10)
+        self.line_marker_pub = self.create_publisher(MarkerArray, 'waypoint/line_markers', 10)
 
         # Keyboard save mode
         if self.use_keyboard:
@@ -52,8 +58,14 @@ class WaypointSaver(Node):
         self.poses = []
         self.current_pose = None
         self.pose_id = 0
-        self.prev_joy_buttons = []
+        self.prev_joy_buttons = [0] * 12  # 前回のJoyボタンの状態を初期化 (ボタンの数に応じて調整)
         self.last_pose = PoseStamped()
+        self.last_save_time = time.time()  # 最後に保存された時間を記録
+
+        # Marker-related variables
+        self.markers = MarkerArray()
+        self.text_markers = MarkerArray()
+        self.line_markers = MarkerArray()
 
     def keyboard_listener(self):
         with keyboard.Listener(on_press=self.on_key_press) as listener:
@@ -62,7 +74,7 @@ class WaypointSaver(Node):
     def on_key_press(self, key):
         try:
             if key.char == 's':
-                self.save_pose()
+                self.try_save_pose()
             elif key.char == 'q':
                 self.save_poses_to_csv()
                 self.destroy_node()
@@ -71,12 +83,9 @@ class WaypointSaver(Node):
             pass
 
     def joy_callback(self, msg):
-        if not self.prev_joy_buttons:
-            self.prev_joy_buttons = [0] * len(msg.buttons)
-
         # Check if save_button is pressed
         if msg.buttons[self.save_button] == 1 and self.prev_joy_buttons[self.save_button] == 0:
-            self.save_pose()
+            self.try_save_pose()
 
         # Check if quit_button is pressed
         if msg.buttons[self.quit_button] == 1 and self.prev_joy_buttons[self.quit_button] == 0:
@@ -85,7 +94,15 @@ class WaypointSaver(Node):
             rclpy.shutdown()
 
         # Update the previous button states
-        self.prev_joy_buttons = msg.buttons
+        self.prev_joy_buttons = list(msg.buttons)  # 現在のボタン状態を次回の比較用にリストとして保存
+
+    def try_save_pose(self):
+        current_time = time.time()
+        if current_time - self.last_save_time >= self.save_interval:
+            self.save_pose()
+            self.last_save_time = current_time
+        else:
+            self.get_logger().info(f'Ignored save request. Wait at least {self.save_interval} seconds between saves.')
 
     def save_pose(self):
         if self.current_pose is not None:
@@ -101,21 +118,89 @@ class WaypointSaver(Node):
             ]
             self.poses.append(pose_data)
             self.get_logger().info(f'saved! ID: {self.pose_id}')
-            self.pose_id += 1
 
             # Publish the saved pose as PoseStamped
             pose_stamped = PoseStamped()
             pose_stamped.header.stamp = self.get_clock().now().to_msg()
-            pose_stamped.header.frame_id = "map"  # frame_idに注意
+            pose_stamped.header.frame_id = "map"
             pose_stamped.pose = self.current_pose
             self.pose_publisher.publish(pose_stamped)
 
+            # Create and publish markers
+            self.create_and_publish_markers(pose_stamped)
+
+            # Increment pose ID after publishing the markers
+            self.pose_id += 1
+
             # Memorize the last recorded pose
-            self.last_pose.header.stamp = self.get_clock().now().to_msg()
-            self.last_pose.header.frame_id = "map"
             self.last_pose.pose = self.current_pose
+
         else:
             self.get_logger().warn('Warning: No pose received yet.')
+
+    def create_and_publish_markers(self, pose_stamped):
+        # Create a marker for the waypoint
+        marker = Marker()
+        marker.header.frame_id = pose_stamped.header.frame_id
+        marker.header.stamp = pose_stamped.header.stamp
+        marker.ns = "waypoints"
+        marker.id = self.pose_id
+        marker.type = Marker.SPHERE
+        marker.action = Marker.ADD
+        marker.pose = pose_stamped.pose
+        marker.scale.x = 0.2
+        marker.scale.y = 0.2
+        marker.scale.z = 0.2
+        marker.color.a = 1.0
+        marker.color.r = 0.0
+        marker.color.g = 1.0
+        marker.color.b = 0.0
+        self.markers.markers.append(marker)
+
+        # Create a text marker to display the waypoint ID
+        text_marker = Marker()
+        text_marker.header.frame_id = pose_stamped.header.frame_id
+        text_marker.header.stamp = pose_stamped.header.stamp
+        text_marker.ns = "waypoints_text"
+        text_marker.id = self.pose_id + 1000
+        text_marker.type = Marker.TEXT_VIEW_FACING
+        text_marker.action = Marker.ADD
+        text_marker.pose.position.x = pose_stamped.pose.position.x + 0.3
+        text_marker.pose.position.y = pose_stamped.pose.position.y - 0.3
+        text_marker.pose.position.z = pose_stamped.pose.position.z + 0.3
+        text_marker.scale.z = 0.5
+        text_marker.color.a = 1.0
+        text_marker.color.r = 0.0
+        text_marker.color.g = 0.0
+        text_marker.color.b = 0.0
+        text_marker.text = str(self.pose_id)
+        self.text_markers.markers.append(text_marker)
+
+        # Create a line marker connecting to the previous waypoint, if applicable
+        if len(self.markers.markers) > 1:
+            line_marker = Marker()
+            line_marker.header.frame_id = pose_stamped.header.frame_id
+            line_marker.header.stamp = pose_stamped.header.stamp
+            line_marker.ns = "waypoints_lines"
+            line_marker.id = self.pose_id + 2000
+            line_marker.type = Marker.LINE_STRIP
+            line_marker.action = Marker.ADD
+            line_marker.scale.x = 0.02
+            line_marker.color.a = 1.0
+            line_marker.color.r = 0.0
+            line_marker.color.g = 1.0
+            line_marker.color.b = 0.0
+
+            # Set the points for the line
+            line_marker.points.append(self.markers.markers[-2].pose.position)
+            line_marker.points.append(pose_stamped.pose.position)
+
+            self.line_markers.markers.append(line_marker)
+
+        # Publish all markers
+        self.marker_pub.publish(self.markers)
+        self.text_marker_pub.publish(self.text_markers)
+        self.line_marker_pub.publish(self.line_markers)
 
     def save_poses_to_csv(self):
         filename = datetime.now().strftime('%Y%m%d%H%M%S') + '_waypoints.csv'
@@ -134,15 +219,15 @@ class WaypointSaver(Node):
         self.current_pose = msg.pose.pose
         dist_between_waypoints = None
         if self.auto_record:
-            if self.last_pose is None:
-                self.last_pose = self.current_pose
+            if self.last_pose.pose is None:
+                self.last_pose.pose = self.current_pose
             else:
                 dist_between_waypoints = sqrt(pow(self.current_pose.position.x - self.last_pose.pose.position.x, 2) + 
                                             pow(self.current_pose.position.y - self.last_pose.pose.position.y, 2) + 
                                             pow(self.current_pose.position.z - self.last_pose.pose.position.z, 2))
                 if dist_between_waypoints >= self.waypoint_interval:
                     self.save_pose()
-                    self.last_pose = self.current_pose
+                    self.last_pose.pose = self.current_pose
 
 
 def main(args=None):
