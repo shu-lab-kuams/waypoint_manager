@@ -63,6 +63,7 @@ class WaypointSaver(Node):
         self.prev_joy_buttons = [0] * 12
         self.last_pose = PoseStamped()
         self.last_save_time = time.time()
+        self.last_erase_time = time.time()
 
         # Marker-related variables
         self.markers = MarkerArray()
@@ -97,7 +98,7 @@ class WaypointSaver(Node):
 
         # Check if erase_button is pressed
         if msg.buttons[self.erace_button] == 1 and self.prev_joy_buttons[self.erace_button] == 0:
-            self.erase_last_pose()
+            self.try_erase_pose()
 
         # Update the previous button states
         self.prev_joy_buttons = list(msg.buttons)
@@ -109,6 +110,14 @@ class WaypointSaver(Node):
             self.last_save_time = current_time
         else:
             self.get_logger().info(f'Ignored save request. Wait at least {self.save_interval} seconds between saves.')
+
+    def try_erase_pose(self):
+        current_time = time.time()
+        if current_time - self.last_erase_time >= self.save_interval:
+            self.erase_last_pose()
+            self.last_erase_time = current_time
+        else:
+            self.get_logger().info(f'Ignored erase request. Wait at least {self.save_interval} seconds between erases.')
 
     def save_pose(self):
         if self.current_pose is not None:
@@ -217,13 +226,34 @@ class WaypointSaver(Node):
             self.get_logger().info(f'erased! ID: {last_pose_id}')
 
             # Remove the corresponding marker
+            delete_marker = Marker()
+            delete_marker.header.frame_id = "map"
+            delete_marker.header.stamp = self.get_clock().now().to_msg()
+            delete_marker.ns = "waypoints"
+            delete_marker.id = last_pose_id
+            delete_marker.action = Marker.DELETE
             self.markers.markers = [marker for marker in self.markers.markers if marker.id != last_pose_id]
+            self.markers.markers.append(delete_marker)
 
             # Remove the corresponding text marker
+            delete_text_marker = Marker()
+            delete_text_marker.header.frame_id = "map"
+            delete_text_marker.header.stamp = self.get_clock().now().to_msg()
+            delete_text_marker.ns = "waypoints_text"
+            delete_text_marker.id = last_pose_id + 1000
+            delete_text_marker.action = Marker.DELETE
             self.text_markers.markers = [text_marker for text_marker in self.text_markers.markers if text_marker.id != last_pose_id + 1000]
+            self.text_markers.markers.append(delete_text_marker)
 
             # Remove the corresponding line marker
+            delete_line_marker = Marker()
+            delete_line_marker.header.frame_id = "map"
+            delete_line_marker.header.stamp = self.get_clock().now().to_msg()
+            delete_line_marker.ns = "waypoints_lines"
+            delete_line_marker.id = last_pose_id + 2000
+            delete_line_marker.action = Marker.DELETE
             self.line_markers.markers = [line_marker for line_marker in self.line_markers.markers if line_marker.id != last_pose_id + 2000]
+            self.line_markers.markers.append(delete_line_marker)
 
             # Publish updated markers
             self.marker_pub.publish(self.markers)
