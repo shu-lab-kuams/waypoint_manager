@@ -19,6 +19,7 @@ class WaypointSaver(Node):
         super().__init__('waypoint_saver')
 
         # Parameters
+        self.declare_parameter('saving_waypoints_file_name', '')
         self.declare_parameter('use_keyboard', False)
         self.declare_parameter('use_joy', False)
         self.declare_parameter('save_button', 0)
@@ -27,6 +28,7 @@ class WaypointSaver(Node):
         self.declare_parameter('auto_record', False)
         self.declare_parameter('waypoint_interval', 1)
         self.declare_parameter('save_interval', 0.5)
+        self.saving_waypoints_file_name = self.get_parameter('saving_waypoints_file_name').value
         self.use_keyboard = self.get_parameter('use_keyboard').value
         self.use_joy = self.get_parameter('use_joy').value
         self.save_button = self.get_parameter('save_button').value
@@ -263,7 +265,11 @@ class WaypointSaver(Node):
             self.get_logger().warn('No poses to erase.')
 
     def save_poses_to_csv(self):
-        filename = datetime.now().strftime('%Y%m%d%H%M%S') + '_waypoints.csv'
+        if self.saving_waypoints_file_name:
+            filename = self.saving_waypoints_file_name
+        else:
+            filename = datetime.now().strftime('%Y%m%d%H%M%S') + '_waypoints.csv'
+        
         path = os.path.join(os.path.curdir, 'src', 'waypoint_manager', 'waypoints', filename)  
 
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -272,8 +278,6 @@ class WaypointSaver(Node):
             writer = csv.writer(file)
             writer.writerow(['id', 'pos_x', 'pos_y', 'pos_z', 'rot_x', 'rot_y', 'rot_z', 'rot_w'])
             writer.writerows(self.poses)
-
-        self.get_logger().info(f'quited. Data saved to {path}!')
 
     def pose_callback(self, msg):
         self.current_pose = msg.pose.pose

@@ -1,5 +1,7 @@
 waypoint_saver_node:
   ros__parameters:
+    saving_waypoints_file_name: ''
+    
     use_keyboard: False
 
     use_joy: True
