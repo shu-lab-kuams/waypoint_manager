@@ -39,7 +39,7 @@ class WaypointSaver(Node):
         self.save_interval = self.get_parameter('save_interval').value
 
         # Subscription
-        self.create_subscription(PoseWithCovarianceStamped, '/mcl_pose', self.pose_callback, 10)        
+        self.create_subscription(PoseWithCovarianceStamped, '/pcl_pose', self.pose_callback, 10)        
 
         # Publisher
         self.pose_publisher = self.create_publisher(PoseStamped, '/navigation_manager/waypoint_pose', 10)

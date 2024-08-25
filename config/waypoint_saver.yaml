@@ -9,5 +9,5 @@ waypoint_saver_node:
     quite_button: 1
     erace_button: 2
 
-    auto_record: False
-    waypoint_interval: 2
+    auto_record: true
+    waypoint_interval: 4
