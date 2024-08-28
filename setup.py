@@ -11,10 +11,12 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/config', ['config/waypoint_manager.yaml']),
         ('share/' + package_name + '/config', ['config/waypoint_saver.yaml']),
-        ('share/' + package_name + '/config', ['config/waypoint_visualizer.yaml']),        
+        ('share/' + package_name + '/config', ['config/waypoint_visualizer.yaml']),  
+        ('share/' + package_name + '/config', ['config/waypoint_skipper.yaml']),      
         ('share/' + package_name + '/launch', ['launch/waypoint_manager.launch.py']),
         ('share/' + package_name + '/launch', ['launch/waypoint_saver.launch.py']),
-        ('share/' + package_name + '/launch', ['launch/waypoint_visualizer.launch.py']),          
+        ('share/' + package_name + '/launch', ['launch/waypoint_visualizer.launch.py']),
+        ('share/' + package_name + '/launch', ['launch/waypoint_skipper.launch.py']),      
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -27,7 +29,8 @@ setup(
         'console_scripts': [
             'waypoint_manager = waypoint_manager.waypoint_manager:main',
             'waypoint_saver = waypoint_manager.waypoint_saver:main',
-            'waypoint_visualizer = waypoint_manager.waypoint_visualizer:main'
+            'waypoint_visualizer = waypoint_manager.waypoint_visualizer:main',
+            'waypoint_skipper = waypoint_manager.waypoint_skipper:main'
         ],
     },
 )
