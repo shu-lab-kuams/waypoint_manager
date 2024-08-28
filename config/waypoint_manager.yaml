@@ -4,10 +4,16 @@ waypoint_manager_node:
     waypoints_csv: ''
     action_server_name: 'navigate_to_pose'
     loop_enable: True
-    loop_count: 3
+    loop_count: 2
 
 waypoint_visualizer_node:
   ros__parameters:
     # Set waypoints_csv file in the launch file
     waypoints_csv: ''
     map_frame: 'map'
+
+waypoint_skipper_node:
+  ros__parameters:
+    waypoints_csv: '/home/kazuma/kuams_ws/src/waypoint_manager/waypoints/kazu_bot_sim_waypoints.csv'
+    waypoint_skip_tolerance: 1.0
+    skip_scan_count: 5

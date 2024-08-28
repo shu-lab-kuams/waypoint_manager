@@ -12,7 +12,7 @@ setup(
         ('share/' + package_name + '/config', ['config/waypoint_manager.yaml']),
         ('share/' + package_name + '/config', ['config/waypoint_saver.yaml']),
         ('share/' + package_name + '/config', ['config/waypoint_visualizer.yaml']),  
-        ('share/' + package_name + '/config', ['launch/waypoint_skipper.launch.py']),      
+        ('share/' + package_name + '/config', ['config/waypoint_skipper.yaml']),      
         ('share/' + package_name + '/launch', ['launch/waypoint_manager.launch.py']),
         ('share/' + package_name + '/launch', ['launch/waypoint_saver.launch.py']),
         ('share/' + package_name + '/launch', ['launch/waypoint_visualizer.launch.py']),

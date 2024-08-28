@@ -1,5 +1,5 @@
 waypoint_skipper_node:
   ros__parameters:
-    waypoints_csv: '/home/keisoku/dev_ws/src/waypoint_manager/waypoints/20240720154249_waypoints.csv'
+    waypoints_csv: '/home/kazuma/kuams_ws/src/waypoint_manager/waypoints/kazu_bot_sim_waypoints.csv'
     waypoint_skip_tolerance: 1.0
     skip_scan_count: 5

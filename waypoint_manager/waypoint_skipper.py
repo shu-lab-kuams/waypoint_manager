@@ -1,11 +1,11 @@
 import csv
 import math
-
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
 from std_msgs.msg import Int32, Bool
 from sensor_msgs.msg import LaserScan
+from visualization_msgs.msg import Marker, MarkerArray
 
 class WaypointSkipper(Node):
     def __init__(self):
@@ -23,12 +23,13 @@ class WaypointSkipper(Node):
         self.current_pose = None
         self.current_waypoint_id = None
         self.skip_scan_counter = 0
-        self.create_subscription(PoseWithCovarianceStamped, 'current_pose', self.current_pose_callback, 10)
+        self.create_subscription(PoseWithCovarianceStamped, 'mcl_pose', self.current_pose_callback, 10)
         self.create_subscription(Int32, 'waypoint_id', self.waypoint_id_callback, 10)
         self.create_subscription(LaserScan, 'scan', self.scan_callback, 10)
 
         # Publisher
         self.skip_flag_publisher = self.create_publisher(Bool, 'skip_flag', 10)
+        self.marker_array_publisher = self.create_publisher(MarkerArray, 'waypoint/skip_tolerance', 10)
 
         # Load Waypoint CSV file
         self.waypoints_data = self.load_waypoints_from_csv(self.waypoints_csv)
@@ -38,12 +39,16 @@ class WaypointSkipper(Node):
             self.get_logger().error("No waypoints loaded. Please check the CSV file.")
             return
 
+        # Variables to manage markers
+        self.last_marker_ids = []
+
     def current_pose_callback(self, msg):
         self.current_pose = msg.pose.pose
 
     def waypoint_id_callback(self, msg):
         self.current_waypoint_id = msg.data
-    
+        self.publish_circle_marker()
+
     def scan_callback(self, msg):
         if self.current_pose and self.current_waypoint_id is not None:
             current_waypoint = self.waypoints_data[self.current_waypoint_id]["pose"].pose
@@ -99,6 +104,45 @@ class WaypointSkipper(Node):
             self.get_logger().error(f"Error loading waypoints: {e}")
         
         return waypoints_data
+
+    def publish_circle_marker(self):
+        marker_array = MarkerArray()
+
+        # Delete all previous markers
+        for marker_id in self.last_marker_ids:
+            delete_marker = Marker()
+            delete_marker.header.frame_id = 'map'
+            delete_marker.action = Marker.DELETE
+            delete_marker.id = marker_id
+            delete_marker.ns = "waypoint_skipper"
+            marker_array.markers.append(delete_marker)
+
+        # Clear the list of previous marker IDs
+        self.last_marker_ids.clear()
+
+        # Create and publish a new marker
+        marker = Marker()
+        marker.header.frame_id = 'map'
+        marker.header.stamp = self.get_clock().now().to_msg()
+        marker.ns = "waypoint_skipper"
+        marker.id = self.current_waypoint_id
+        marker.type = Marker.CYLINDER
+        marker.action = Marker.ADD
+        marker.pose = self.waypoints_data[self.current_waypoint_id]["pose"].pose
+        marker.scale.x = self.waypoint_skip_tolerance * 2.0
+        marker.scale.y = self.waypoint_skip_tolerance * 2.0
+        marker.scale.z = 0.1
+        marker.color.a = 0.7
+        marker.color.r = 1.0
+        marker.color.g = 1.0
+        marker.color.b = 0.0
+
+        marker_array.markers.append(marker)
+
+        # Save the marker ID to remove it later
+        self.last_marker_ids.append(marker.id)
+
+        self.marker_array_publisher.publish(marker_array)
 
 def main(args=None):
     rclpy.init(args=args)
