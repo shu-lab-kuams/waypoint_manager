@@ -14,6 +14,7 @@ waypoint_visualizer_node:
 
 waypoint_skipper_node:
   ros__parameters:
-    waypoints_csv: '/home/kazuma/kuams_ws/src/waypoint_manager/waypoints/kazu_bot_sim_waypoints.csv'
+    # Set waypoints_csv file in the launch file
+    waypoints_csv: ''
     waypoint_skip_tolerance: 1.0
     skip_scan_count: 5

@@ -1,4 +1,4 @@
 waypoint_visualizer_node:
   ros__parameters:
-    waypoints_csv: '/home/keisoku/dev_ws/src/waypoint_manager/waypoints/20240720154249_waypoints.csv'
+    waypoints_csv: ''
     map_frame: 'map'
