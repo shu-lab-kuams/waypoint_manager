@@ -43,7 +43,7 @@ ros2 launch waypoint_manager waypoint_manager.launch.py
 
 ## 3. Parameter Description
 
-You can configure the node's parameters by modifying the `pcd2pgm/pcd2pgm.yaml` file.
+You can configure the node's parameters by modifying the `waypoint_manager/waypoint_manager.yaml` file.
 
   ```yaml
   waypoint_manager_node:
