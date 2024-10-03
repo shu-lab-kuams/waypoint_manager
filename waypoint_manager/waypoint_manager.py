@@ -22,10 +22,10 @@ class WaypointManager(Node):
         self.loop_count = self.get_parameter('loop_count').value
 
         # Subscriber
-        self.skip_flag_subscriber = self.create_subscription(Bool, 'skip_flag', self.skip_flag_callback, 10)
+        self.skip_flag_subscriber = self.create_subscription(Bool, '/skip_flag', self.skip_flag_callback, 10)
 
         # Publisher
-        self.waypoint_id_publisher = self.create_publisher(Int32, 'waypoint_id', 10)
+        self.waypoint_id_publisher = self.create_publisher(Int32, '/waypoint_id', 10)
         
         # Action client
         self._action_client = ActionClient(self, NavigateToPose, action_server_name)
@@ -50,7 +50,7 @@ class WaypointManager(Node):
                 header = next(reader)
 
                 for row in reader:
-                    if len(row) < 8:
+                    if len(row) < 9:
                         self.get_logger().error(f"Row in CSV file is too short: {row}")
                         continue
                     pose_stamped_msg = PoseStamped()
@@ -63,7 +63,9 @@ class WaypointManager(Node):
                     pose_stamped_msg.pose.orientation.z = float(row[6])
                     pose_stamped_msg.pose.orientation.w = float(row[7])
 
-                    waypoint_data = {"pose": pose_stamped_msg}
+                    waypoint_data = {"pose": pose_stamped_msg,
+                                     "skip_flag": int(row[8])
+                                     }
                     waypoints_data.append(waypoint_data)
             
             self.get_logger().info(f"Loaded {len(waypoints_data)} waypoints from {waypoints_csv}.")
@@ -98,10 +100,11 @@ class WaypointManager(Node):
 
         # Check the skip flag during feedback, and immediately move to the next waypoint if flagged
         if self.skip_flag:
-            self.get_logger().info(f'Skip flag is True. Skipping waypoint {self.current_waypoint_index}.')
-            self.skip_flag = False
-            self.current_waypoint_index += 1
-            self.advance_to_next_waypoint()
+            if self.waypoints_data[self.current_waypoint_index]["skip_flag"] == 1:
+                self.get_logger().info(f'Skip flag is True. Skipping waypoint {self.current_waypoint_index}.')
+                self.skip_flag = False
+                self.current_waypoint_index += 1
+                self.advance_to_next_waypoint()
 
     def goal_response_callback(self, future):
         goal_handle = future.result()
@@ -133,7 +136,6 @@ class WaypointManager(Node):
                     self.advance_to_next_waypoint()
                 else:
                     self.get_logger().info('Arrived at the last waypoint. Navigation complete.')
-                    rclpy.shutdown()
             self.skip_flag = False
 
     def publish_waypoint_id(self):

@@ -16,8 +16,8 @@ def generate_launch_description():
             executable='waypoint_skipper',
             name='waypoint_skipper_node',
             output='screen',
-            remappings=[('current_pose', 'current_pose'),
-                        ('scan', 'scan')
+            remappings=[('/current_pose', '/current_pose'),
+                        ('/scan', '/scan')
             ],
             parameters=[waypoint_skipper_config]
         ),

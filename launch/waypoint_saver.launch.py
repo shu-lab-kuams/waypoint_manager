@@ -16,7 +16,7 @@ def generate_launch_description():
             executable='waypoint_saver',
             name='waypoint_saver_node',
             output='screen',
-            remappings=[('current_pose', 'current_pose')],
+            remappings=[('/current_pose', '/current_pose')],
             parameters=[waypoint_saver_config]
         ),
 

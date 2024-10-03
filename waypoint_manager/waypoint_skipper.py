@@ -23,12 +23,12 @@ class WaypointSkipper(Node):
         self.current_pose = None
         self.current_waypoint_id = None
         self.skip_scan_counter = 0
-        self.create_subscription(PoseWithCovarianceStamped, 'current_pose', self.current_pose_callback, 10)
-        self.create_subscription(Int32, 'waypoint_id', self.waypoint_id_callback, 10)
-        self.create_subscription(LaserScan, 'scan', self.scan_callback, 10)
+        self.create_subscription(PoseWithCovarianceStamped, '/current_pose', self.current_pose_callback, 10)
+        self.create_subscription(Int32, '/waypoint_id', self.waypoint_id_callback, 10)
+        self.create_subscription(LaserScan, '/scan', self.scan_callback, 10)
 
         # Publisher
-        self.skip_flag_publisher = self.create_publisher(Bool, 'skip_flag', 10)
+        self.skip_flag_publisher = self.create_publisher(Bool, '/skip_flag', 10)
         self.marker_array_publisher = self.create_publisher(MarkerArray, 'waypoint/skip_tolerance', 10)
 
         # Load Waypoint CSV file
@@ -78,7 +78,7 @@ class WaypointSkipper(Node):
                 header = next(reader)
 
                 for row in reader:
-                    if len(row) < 8:  # Ensure the row has enough columns
+                    if len(row) < 9:  # Ensure the row has enough columns
                         self.get_logger().error(f"Row in CSV file is too short: {row}")
                         continue
                     pose_stamped_msg = PoseStamped()
@@ -92,7 +92,8 @@ class WaypointSkipper(Node):
                     pose_stamped_msg.pose.orientation.w = float(row[7])
 
                     waypoint_data = {
-                        "pose": pose_stamped_msg
+                        "pose": pose_stamped_msg,
+                        "skip_flag": int(row[8])
                     }
 
                     waypoints_data.append(waypoint_data)
@@ -107,6 +108,7 @@ class WaypointSkipper(Node):
 
     def publish_circle_marker(self):
         marker_array = MarkerArray()
+        current_waypoint_skip_flag = self.waypoints_data[self.current_waypoint_id]["skip_flag"]
 
         # Delete all previous markers
         for marker_id in self.last_marker_ids:
@@ -136,6 +138,10 @@ class WaypointSkipper(Node):
         marker.color.r = 1.0
         marker.color.g = 1.0
         marker.color.b = 0.0
+
+        if current_waypoint_skip_flag == 0:
+            marker.color.r = 1.0
+            marker.color.g = 0.0
 
         marker_array.markers.append(marker)
 

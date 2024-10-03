@@ -26,7 +26,7 @@ class WaypointSaver(Node):
         self.declare_parameter('quit_button', 1)
         self.declare_parameter('erace_button', 2)
         self.declare_parameter('auto_record', False)
-        self.declare_parameter('waypoint_interval', 1)
+        self.declare_parameter('waypoint_interval', 1.0)
         self.declare_parameter('save_interval', 0.5)
         self.saving_waypoints_file_name = self.get_parameter('saving_waypoints_file_name').value
         self.use_keyboard = self.get_parameter('use_keyboard').value
@@ -39,7 +39,7 @@ class WaypointSaver(Node):
         self.save_interval = self.get_parameter('save_interval').value
 
         # Subscription
-        self.create_subscription(PoseWithCovarianceStamped, '/pcl_pose', self.pose_callback, 10)        
+        self.create_subscription(PoseWithCovarianceStamped, '/current_pose', self.pose_callback, 10)        
 
         # Publisher
         self.pose_publisher = self.create_publisher(PoseStamped, '/navigation_manager/waypoint_pose', 10)
@@ -62,6 +62,7 @@ class WaypointSaver(Node):
         self.poses = []
         self.current_pose = None
         self.pose_id = 0
+        self.skip_flag = 1
         self.prev_joy_buttons = [0] * 12
         self.last_pose = PoseStamped()
         self.last_save_time = time.time()
@@ -132,6 +133,7 @@ class WaypointSaver(Node):
                 str(self.current_pose.orientation.y),
                 str(self.current_pose.orientation.z),
                 str(self.current_pose.orientation.w),
+                int(self.skip_flag)
             ]
             self.poses.append(pose_data)
             self.get_logger().info(f'saved! ID: {self.pose_id}')
@@ -276,8 +278,10 @@ class WaypointSaver(Node):
 
         with open(path, mode='w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['id', 'pos_x', 'pos_y', 'pos_z', 'rot_x', 'rot_y', 'rot_z', 'rot_w'])
+            writer.writerow(['id', 'pos_x', 'pos_y', 'pos_z', 'rot_x', 'rot_y', 'rot_z', 'rot_w', 'skip_flag'])
             writer.writerows(self.poses)
+
+        self.get_logger().info(f'Saved {len(self.poses)} poses to {path}.')
 
     def pose_callback(self, msg):
         self.current_pose = msg.pose.pose

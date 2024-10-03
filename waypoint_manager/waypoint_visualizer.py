@@ -30,7 +30,7 @@ class WaypointVisualizer(Node):
         self.text_marker_pub = self.create_publisher(MarkerArray, 'waypoint/text_markers', 10)
         self.line_marker_pub = self.create_publisher(MarkerArray, 'waypoint/line_markers', 10)
 
-        self.waypoint_id_sub = self.create_subscription(Int32, 'waypoint_id', self.waypoint_id_callback, 10)
+        self.waypoint_id_sub = self.create_subscription(Int32, '/waypoint_id', self.waypoint_id_callback, 10)
 
         self.timer = self.create_timer(0.1, self.timer_callback)
         self.current_waypoint_id = None
@@ -42,7 +42,7 @@ class WaypointVisualizer(Node):
                 next(reader)  # Skip the header row
 
                 for index, row in enumerate(reader):
-                    if len(row) == 8:  # Ensure the row has 8 columns
+                    if len(row) == 9:  # Ensure the row has 9 columns
                         pose = PoseStamped()
                         pose.pose.position.x = float(row[1])
                         pose.pose.position.y = float(row[2])

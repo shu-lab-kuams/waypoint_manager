@@ -5,7 +5,7 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
     # Set the paths to the waypoint CSV and the configuration file
-    waypoints_csv_path = ''
+    waypoints_csv_path = '/path/to/your/waypoints.csv'
     config_file_path = os.path.join(
         get_package_share_directory('waypoint_manager'),
         'config',
@@ -36,8 +36,8 @@ def generate_launch_description():
             executable='waypoint_skipper',
             name='waypoint_skipper_node',
             output='screen',
-            remappings=[('current_pose', 'current_pose'),
-                        ('scan', 'scan')
+            remappings=[('/current_pose', '/current_pose'),
+                        ('/scan', '/scan')
             ],
             parameters=[config_file_path, {
                 'waypoints_csv' : waypoints_csv_path,
