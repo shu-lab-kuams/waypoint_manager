@@ -11,6 +11,8 @@ A package for waypoint navigation using Nav2, enabling robots to autonomously fo
 
 - Saving waypoints
 
+- Waypoint Skip Function
+
 ## 2. Usage Guide
 
 ### 2.1 Clone the Repository
