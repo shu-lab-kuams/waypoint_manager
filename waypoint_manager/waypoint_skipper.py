@@ -78,7 +78,7 @@ class WaypointSkipper(Node):
                 header = next(reader)
 
                 for row in reader:
-                    if len(row) < 9:  # Ensure the row has enough columns
+                    if len(row) < 10:  # Ensure the row has enough columns
                         self.get_logger().error(f"Row in CSV file is too short: {row}")
                         continue
                     pose_stamped_msg = PoseStamped()
@@ -93,7 +93,7 @@ class WaypointSkipper(Node):
 
                     waypoint_data = {
                         "pose": pose_stamped_msg,
-                        "skip_flag": int(row[8])
+                        "skip_flag": int(row[8]),
                     }
 
                     waypoints_data.append(waypoint_data)

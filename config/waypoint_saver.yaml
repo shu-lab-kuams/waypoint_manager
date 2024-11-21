@@ -1,6 +1,6 @@
 waypoint_saver_node:
   ros__parameters:
-    saving_waypoints_file_name: 'test_waypoints.csv'
+    saving_waypoints_file_name: 'shulab.csv'
     
     use_keyboard: False
 
@@ -9,5 +9,5 @@ waypoint_saver_node:
     quit_button: 1
     erace_button: 2
 
-    auto_record: True
+    auto_record: false
     waypoint_interval: 4.0
